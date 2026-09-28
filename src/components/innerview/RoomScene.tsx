@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, useGLTF, useProgress } from "@react-three/drei";
-import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import camInterviewer from "@/assets/cam-interviewer.jpg";
 import camCandidate from "@/assets/cam-candidate.jpg";
@@ -465,7 +465,7 @@ const KEYS: Key[] = [
 ];
 
 function CameraRig() {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const pos = useMemo(() => new THREE.Vector3(), []);
   const tgt = useMemo(() => new THREE.Vector3(), []);
   const camPosCurve = useMemo(() => {
@@ -501,7 +501,8 @@ function CameraRig() {
     camera.lookAt(tgt);
     const cam = camera as THREE.PerspectiveCamera;
     const fovT = smooth(0.15, 0.34, p) * (1 - smooth(0.46, 0.56, p));
-    const fov = THREE.MathUtils.lerp(38, 30, fovT);
+    const portrait = size.width < size.height;
+    const fov = THREE.MathUtils.lerp(portrait ? 46 : 38, portrait ? 36 : 30, fovT);
     if (Math.abs(cam.fov - fov) > 0.01) {
       cam.fov = fov;
       cam.updateProjectionMatrix();
@@ -569,13 +570,28 @@ export default function RoomScene({
   onReady: (ready: boolean) => void;
   onProgress: (progress: number) => void;
 }) {
+  const [quality, setQuality] = useState({ dpr: 1.25, shadowMapSize: 512 });
+
+  useEffect(() => {
+    const updateQuality = () => {
+      const compact = window.innerWidth < 768;
+      setQuality({
+        dpr: Math.min(window.devicePixelRatio || 1, compact ? 1.25 : 1.75),
+        shadowMapSize: compact ? 512 : 1024,
+      });
+    };
+    updateQuality();
+    window.addEventListener("resize", updateQuality);
+    return () => window.removeEventListener("resize", updateQuality);
+  }, []);
+
   // NOTE: we intentionally don't clear the GLTF cache on unmount — the scene
   // remounts during development / re-navigation, and refetching two ~9 MB
   // models each time stalls the intro.
   return (
     <Canvas
       shadows
-      dpr={[1, 1.75]}
+      dpr={quality.dpr}
       camera={{ position: [3.4, 2.1, 0.2], fov: 38, near: 0.02, far: 60 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
     >
@@ -591,8 +607,8 @@ export default function RoomScene({
         decay={1.6}
         color="#ffbb70"
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
+        shadow-mapSize-width={quality.shadowMapSize}
+        shadow-mapSize-height={quality.shadowMapSize}
         shadow-bias={-0.0004}
       />
       <directionalLight position={[-4, 3, -3]} intensity={0.25} color="#6f8fbf" />

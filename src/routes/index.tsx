@@ -105,9 +105,13 @@ function Index() {
 
   useEffect(() => {
     let raf = 0;
+    let lastProgressUpdate = 0;
     const onScroll = () => {
       cancelAnimationFrame(raf);
       raf = requestAnimationFrame(() => {
+        const now = performance.now();
+        if (window.innerWidth < 768 && now - lastProgressUpdate < 32) return;
+        lastProgressUpdate = now;
         const el = story.current;
         if (!el) return;
         const r = el.getBoundingClientRect();
@@ -147,19 +151,19 @@ function Index() {
       <LiveBackground />
 
       {/* Nav */}
-      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-6 py-5 md:px-10">
+      <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-4 py-4 sm:px-6 sm:py-5 md:px-10">
         <span className="font-display text-2xl italic text-primary">Innerview</span>
         <a
           href="#demo"
-          className="rounded-full border border-border px-4 py-1.5 text-sm text-foreground/80 transition-colors hover:border-primary hover:text-primary"
+          className="min-h-10 rounded-full border border-border px-4 py-2 text-sm text-foreground/80 transition-colors hover:border-primary hover:text-primary sm:min-h-0 sm:py-1.5"
         >
           See it live
         </a>
       </header>
 
       {/* Scrollytelling story */}
-      <div ref={story} className="relative z-10" style={{ height: "900vh" }}>
-        <div className="sticky top-0 h-screen w-full overflow-hidden">
+      <div ref={story} className="relative z-10 h-[650svh] md:h-[900vh]">
+        <div className="sticky top-0 h-[100svh] w-full overflow-hidden md:h-screen">
           <Suspense fallback={null}>
             <RoomScene onReady={setSceneReady} onProgress={setSceneProgress} />
           </Suspense>
@@ -183,8 +187,8 @@ function Index() {
             return (
               <div
                 key={c.title}
-                className={`pointer-events-none absolute inset-0 flex px-6 md:px-16 ${
-                  c.hero ? "items-end justify-start pb-24" : "items-center justify-start"
+                className={`pointer-events-none absolute inset-0 flex px-5 sm:px-6 md:px-16 ${
+                  c.hero ? "items-end justify-start pb-16 sm:pb-24" : "items-center justify-start py-16"
                 }`}
                 style={{ opacity: show, transform: `translateY(${y}px)` }}
               >
@@ -194,16 +198,16 @@ function Index() {
                   )}
                   <h2
                     className={`font-display leading-[0.95] ${
-                      c.hero ? "text-7xl italic md:text-[9rem]" : "text-5xl md:text-6xl"
+                      c.hero ? "text-6xl italic sm:text-7xl md:text-[9rem]" : "text-4xl sm:text-5xl md:text-6xl"
                     }`}
                   >
                     {c.title}
                   </h2>
-                  <p className={`mt-4 text-muted-foreground ${c.hero ? "text-lg md:text-xl" : "text-base"}`}>
+                  <p className={`mt-3 max-w-[38rem] text-muted-foreground sm:mt-4 ${c.hero ? "text-base sm:text-lg md:text-xl" : "text-sm sm:text-base"}`}>
                     {c.body}
                   </p>
                   {c.hero && (
-                    <div className="mt-10 flex items-center gap-3 font-mono text-xs text-muted-foreground">
+                    <div className="mt-6 flex items-center gap-3 font-mono text-[11px] text-muted-foreground sm:mt-10 sm:text-xs">
                       <span className="block h-8 w-px animate-pulse bg-primary" /> Scroll to take a seat
                     </div>
                   )}
@@ -224,9 +228,9 @@ function Index() {
 
       {/* Live demo */}
       <section ref={demo} id="demo" className="relative z-10 px-4 pb-24 pt-10 md:px-8">
-        <div className="mx-auto mb-10 max-w-3xl text-center">
+        <div className="mx-auto mb-8 max-w-3xl text-center sm:mb-10">
           <div className="font-mono text-xs uppercase tracking-[0.2em] text-primary">You're in</div>
-          <h2 className="mt-3 font-display text-5xl md:text-7xl">This is the interview.</h2>
+          <h2 className="mt-3 font-display text-4xl sm:text-5xl md:text-7xl">This is the interview.</h2>
           <p className="mt-4 text-muted-foreground">
             Video, problem, code, canvas and tests — one room, two people, zero tab‑switching.
           </p>
@@ -237,7 +241,7 @@ function Index() {
       </section>
 
       {/* Features */}
-      <section className="relative z-10 mx-auto grid max-w-6xl gap-px overflow-hidden rounded-xl border border-border bg-border/60 backdrop-blur-sm md:grid-cols-4">
+      <section className="relative z-10 mx-auto grid max-w-6xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border/60 backdrop-blur-sm md:grid-cols-4">
         {[
           ["Video call", "Built‑in HD video with speaker focus and recording."],
           ["Shared editor", "Live cursors, 20+ languages, syntax highlighting."],
@@ -246,17 +250,17 @@ function Index() {
         ].map(([t, d], i) => (
           <div
             key={t}
-            className="group bg-background/60 p-8 transition-colors duration-500 hover:bg-background/25"
+            className="group bg-background/60 p-5 transition-colors duration-500 hover:bg-background/25 sm:p-8"
           >
             <div className="font-mono text-xs text-primary">0{i + 1}</div>
-            <h3 className="mt-6 font-display text-3xl">{t}</h3>
-            <p className="mt-2 text-sm text-muted-foreground">{d}</p>
+            <h3 className="mt-4 font-display text-2xl sm:mt-6 sm:text-3xl">{t}</h3>
+            <p className="mt-2 text-xs text-muted-foreground sm:text-sm">{d}</p>
           </div>
         ))}
       </section>
 
       <section className="relative z-10 px-6 py-32 text-center">
-        <h2 className="font-display text-6xl italic md:text-8xl">Pull up a chair.</h2>
+        <h2 className="font-display text-5xl italic sm:text-6xl md:text-8xl">Pull up a chair.</h2>
         <p className="mx-auto mt-5 max-w-md text-muted-foreground">
           Run your next technical interview on Innerview.
         </p>

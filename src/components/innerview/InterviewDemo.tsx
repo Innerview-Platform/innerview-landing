@@ -101,27 +101,27 @@ export function InterviewDemo() {
       className="mx-auto w-full max-w-[1400px] overflow-hidden rounded-xl border border-border bg-panel shadow-[0_40px_120px_-40px_oklch(0.8_0.14_70/0.25)]"
     >
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-        <div className="flex items-center gap-3">
+      <div className="flex items-center justify-between gap-2 border-b border-border px-3 py-2.5 sm:px-4">
+        <div className="flex min-w-0 items-center gap-2 sm:gap-3">
           <span className="font-display text-xl italic text-primary">Innerview</span>
-          <span className="hidden text-xs text-muted-foreground sm:inline">
+          <span className="hidden truncate text-xs text-muted-foreground md:inline">
             Senior Backend Engineer · Round 2
           </span>
         </div>
-        <div className="flex items-center gap-4 font-mono text-xs">
+        <div className="flex shrink-0 items-center gap-2 font-mono text-[10px] sm:gap-4 sm:text-xs">
           <span className="flex items-center gap-1.5 text-destructive">
             <span className="h-2 w-2 animate-pulse rounded-full bg-destructive" /> REC
           </span>
           <span className="text-muted-foreground">
             {mm}:{ss}
           </span>
-          <button className="rounded-md bg-destructive/15 px-3 py-1 text-destructive">End</button>
+          <button className="min-h-9 rounded-md bg-destructive/15 px-2 py-1 text-destructive sm:px-3">End</button>
         </div>
       </div>
 
       <div className="grid min-h-[640px] grid-cols-1 lg:grid-cols-[300px_1fr_320px]">
         {/* Problem */}
-        <aside className="border-b border-border p-5 lg:border-b-0 lg:border-r">
+        <aside className="border-b border-border p-4 sm:p-5 lg:border-b-0 lg:border-r">
           <div className="mb-2 flex items-center gap-2">
             <span className="rounded bg-primary/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-primary">
               Medium
@@ -149,12 +149,12 @@ export function InterviewDemo() {
         {/* Editor / Canvas */}
         <section className="flex min-w-0 flex-col border-b border-border lg:border-b-0 lg:border-r">
           <div className="flex items-center justify-between border-b border-border px-3">
-            <div className="flex">
+            <div className="flex min-w-0">
               {(["code", "canvas"] as const).map((t) => (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`border-b-2 px-4 py-2.5 font-mono text-xs capitalize transition-colors ${
+                  className={`min-h-10 border-b-2 px-2 py-2.5 font-mono text-[10px] capitalize transition-colors sm:px-4 sm:text-xs ${
                     tab === t ? "border-primary text-foreground" : "border-transparent text-muted-foreground"
                   }`}
                 >
@@ -163,14 +163,14 @@ export function InterviewDemo() {
               ))}
             </div>
             <div className="flex items-center gap-2">
-              <span className="flex -space-x-1.5">
+              <span className="hidden -space-x-1.5 sm:flex">
                 <span className="h-5 w-5 rounded-full border-2 border-panel bg-primary" />
                 <span className="h-5 w-5 rounded-full border-2 border-panel bg-accent" />
               </span>
               <button
                 onClick={run}
                 disabled={running}
-                className="rounded-md bg-primary px-3 py-1 font-mono text-xs font-medium text-primary-foreground transition-opacity disabled:opacity-60"
+                className="min-h-9 rounded-md bg-primary px-2 py-1 font-mono text-[10px] font-medium text-primary-foreground transition-opacity disabled:opacity-60 sm:px-3 sm:text-xs"
               >
                 {running ? "Running…" : "▶ Run tests"}
               </button>
