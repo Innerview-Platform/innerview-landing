@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { Component, lazy, Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { LiveBackground } from "@/components/innerview/LiveBackground";
 import { scrollState, smooth } from "@/components/innerview/scroll-state";
 
@@ -38,15 +38,46 @@ const CHAPTERS = [
   { a: 0.8, b: 0.9, kicker: "05 — The verdict", title: "Run it. Hear the truth.", body: "Tests land on both screens — then honest feedback from a human who just watched you work." },
 ];
 
+class SceneErrorBoundary extends Component<
+  { children: ReactNode; onError: () => void },
+  { failed: boolean }
+> {
+  override state = { failed: false };
+
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+
+  override componentDidCatch() {
+    this.props.onError();
+  }
+
+  override render() {
+    return this.state.failed ? null : this.props.children;
+  }
+}
+
 function Index() {
   const story = useRef<HTMLDivElement>(null);
   const demo = useRef<HTMLElement>(null);
   const [p, setP] = useState(0);
   const [sceneReady, setSceneReady] = useState(false);
+  const [sceneUnavailable, setSceneUnavailable] = useState(false);
   const [sceneProgress, setSceneProgress] = useState(0);
   const [sceneLoadElapsed, setSceneLoadElapsed] = useState(0);
   const [loadDemo, setLoadDemo] = useState(false);
-  const sceneGateActive = !sceneReady;
+  const sceneGateActive = !sceneReady && !sceneUnavailable;
+
+  useEffect(() => {
+    try {
+      const canvas = document.createElement("canvas");
+      if (!canvas.getContext("webgl2") && !canvas.getContext("webgl")) {
+        setSceneUnavailable(true);
+      }
+    } catch {
+      setSceneUnavailable(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (!sceneGateActive) return;
@@ -56,11 +87,9 @@ function Index() {
     const previousHtmlOverflow = html.style.overflow;
     const previousBodyOverflow = body.style.overflow;
     const previousHtmlOverscroll = html.style.overscrollBehavior;
-    const previousTouchAction = body.style.touchAction;
     html.style.overflow = "hidden";
     html.style.overscrollBehavior = "none";
     body.style.overflow = "hidden";
-    body.style.touchAction = "none";
 
     const preventScrollKeys = (event: KeyboardEvent) => {
       if ([" ", "ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"].includes(event.key)) {
@@ -73,7 +102,6 @@ function Index() {
       html.style.overflow = previousHtmlOverflow;
       html.style.overscrollBehavior = previousHtmlOverscroll;
       body.style.overflow = previousBodyOverflow;
-      body.style.touchAction = previousTouchAction;
       window.removeEventListener("keydown", preventScrollKeys, { capture: true });
     };
   }, [sceneGateActive]);
@@ -162,13 +190,17 @@ function Index() {
       </header>
 
       {/* Scrollytelling story */}
-      <div ref={story} className="relative z-10 h-[650svh] md:h-[900vh]">
+      <div ref={story} className="relative z-10 md:h-[900vh]">
         <div className="sticky top-0 h-[100svh] w-full overflow-hidden md:h-screen">
-          <Suspense fallback={null}>
-            <RoomScene onReady={setSceneReady} onProgress={setSceneProgress} />
-          </Suspense>
+          {!sceneUnavailable && (
+            <SceneErrorBoundary onError={() => setSceneUnavailable(true)}>
+              <Suspense fallback={null}>
+                <RoomScene onReady={setSceneReady} onProgress={setSceneProgress} />
+              </Suspense>
+            </SceneErrorBoundary>
+          )}
           <div
-            className={`story-scene-placeholder ${sceneReady ? "opacity-0" : "opacity-100"}`}
+            className={`story-scene-placeholder ${sceneReady && !sceneUnavailable ? "opacity-0" : "opacity-100"}`}
             aria-hidden="true"
           />
 
@@ -187,7 +219,7 @@ function Index() {
             return (
               <div
                 key={c.title}
-                className={`pointer-events-none absolute inset-0 flex px-5 sm:px-6 md:px-16 ${
+                className={`pointer-events-none absolute inset-0 hidden px-5 sm:px-6 md:flex md:px-16 ${
                   c.hero ? "items-end justify-start pb-16 sm:pb-24" : "items-center justify-start py-16"
                 }`}
                 style={{ opacity: show, transform: `translateY(${y}px)` }}
@@ -224,14 +256,39 @@ function Index() {
           {/* screen dive fade */}
           <div className="pointer-events-none absolute inset-0 bg-background" style={{ opacity: dive }} />
         </div>
+        <div className="relative z-10 -mt-[100svh] md:hidden">
+          {CHAPTERS.map((chapter, index) => (
+            <section
+              key={chapter.title}
+              className={`flex min-h-[100svh] flex-col justify-end px-5 pb-[max(4rem,env(safe-area-inset-bottom))] pt-24 ${index === 0 ? "" : "border-t border-white/5"}`}
+            >
+              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background/80 p-5 shadow-2xl backdrop-blur-xl min-[400px]:p-6">
+                {chapter.kicker && (
+                  <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-primary">
+                    {chapter.kicker}
+                  </div>
+                )}
+                <h2 className={`font-display leading-[0.98] ${index === 0 ? "text-[clamp(2.75rem,14vw,5.5rem)] italic" : "text-[clamp(2.5rem,11vw,4rem)]"}`}>
+                  {chapter.title}
+                </h2>
+                <p className="mt-4 text-sm leading-relaxed text-foreground/75 min-[400px]:text-base">{chapter.body}</p>
+                {index === 0 && (
+                  <div className="mt-6 flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
+                    <span className="block h-7 w-px animate-pulse bg-primary" /> Scroll to take a seat
+                  </div>
+                )}
+              </div>
+            </section>
+          ))}
+        </div>
       </div>
 
       {/* Live demo */}
-      <section ref={demo} id="demo" className="relative z-10 px-4 pb-24 pt-10 md:px-8">
+      <section ref={demo} id="demo" className="relative z-10 scroll-mt-16 px-3 pb-20 pt-14 min-[400px]:px-4 md:px-8 md:pb-24 md:pt-10">
         <div className="mx-auto mb-8 max-w-3xl text-center sm:mb-10">
           <div className="font-mono text-xs uppercase tracking-[0.2em] text-primary">You're in</div>
-          <h2 className="mt-3 font-display text-4xl sm:text-5xl md:text-7xl">This is the interview.</h2>
-          <p className="mt-4 text-muted-foreground">
+          <h2 className="mt-3 font-display text-[clamp(2.5rem,11vw,4.5rem)] leading-none md:text-7xl">This is the interview.</h2>
+          <p className="mx-auto mt-4 max-w-lg text-sm leading-relaxed text-muted-foreground sm:text-base">
             Video, problem, code, canvas and tests — one room, two people, zero tab‑switching.
           </p>
         </div>
@@ -241,7 +298,7 @@ function Index() {
       </section>
 
       {/* Features */}
-      <section className="relative z-10 mx-auto grid max-w-6xl grid-cols-2 gap-px overflow-hidden rounded-xl border border-border bg-border/60 backdrop-blur-sm md:grid-cols-4">
+      <section className="relative z-10 mx-3 grid max-w-6xl grid-cols-1 gap-px overflow-hidden rounded-xl border border-border bg-border/60 backdrop-blur-sm min-[420px]:grid-cols-2 min-[420px]:mx-4 md:mx-auto md:grid-cols-4">
         {[
           ["Video call", "Built‑in HD video with speaker focus and recording."],
           ["Shared editor", "Live cursors, 20+ languages, syntax highlighting."],
@@ -259,8 +316,8 @@ function Index() {
         ))}
       </section>
 
-      <section className="relative z-10 px-6 py-32 text-center">
-        <h2 className="font-display text-5xl italic sm:text-6xl md:text-8xl">Pull up a chair.</h2>
+      <section className="relative z-10 px-5 py-24 text-center md:py-32">
+        <h2 className="font-display text-[clamp(3rem,13vw,6rem)] leading-none italic md:text-8xl">Pull up a chair.</h2>
         <p className="mx-auto mt-5 max-w-md text-muted-foreground">
           Run your next technical interview on Innerview.
         </p>
@@ -300,6 +357,11 @@ function Index() {
             <span style={{ width: `${displayedProgress}%` }} />
           </div>
           <span className="scene-loading-footnote">The experience will open as soon as the room is ready.</span>
+          {sceneLoadElapsed >= 15 && (
+            <button className="scene-loading-skip" onClick={() => setSceneUnavailable(true)}>
+              Continue without 3D
+            </button>
+          )}
         </div>
       </div>
     )}

@@ -50,7 +50,7 @@ export function InterviewDemo() {
   useEffect(() => {
     const el = root.current;
     if (!el) return;
-    const io = new IntersectionObserver(([e]) => e.isIntersecting && setStarted(true), { threshold: 0.35 });
+    const io = new IntersectionObserver(([e]) => e?.isIntersecting && setStarted(true), { threshold: 0.35 });
     io.observe(el);
     return () => io.disconnect();
   }, []);
@@ -66,7 +66,7 @@ export function InterviewDemo() {
   }, [started]);
 
   useEffect(() => {
-    if (!started || typed >= TOTAL) return;
+    if (!started || typed >= TOTAL) return undefined;
     const t = setTimeout(() => setTyped((n) => n + 2), 28);
     return () => clearTimeout(t);
   }, [started, typed]);
@@ -83,6 +83,7 @@ export function InterviewDemo() {
       const t = setTimeout(run, 500);
       return () => clearTimeout(t);
     }
+    return undefined;
   }, [typed]);
 
   // Show the shared canvas briefly while the candidate explains
@@ -121,7 +122,7 @@ export function InterviewDemo() {
 
       <div className="grid min-h-[640px] grid-cols-1 lg:grid-cols-[300px_1fr_320px]">
         {/* Problem */}
-        <aside className="border-b border-border p-4 sm:p-5 lg:border-b-0 lg:border-r">
+        <aside className="min-w-0 border-b border-border p-4 sm:p-5 lg:border-b-0 lg:border-r">
           <div className="mb-2 flex items-center gap-2">
             <span className="rounded bg-primary/15 px-2 py-0.5 font-mono text-[10px] uppercase tracking-wider text-primary">
               Medium
@@ -134,7 +135,7 @@ export function InterviewDemo() {
             <code className="font-mono text-foreground">intervals[i] = [start, end]</code>, merge all overlapping
             intervals and return an array of the non-overlapping intervals that cover all the input.
           </p>
-          <div className="mt-5 rounded-md border border-border bg-background/60 p-3 font-mono text-xs leading-6">
+          <div className="mt-5 overflow-x-auto rounded-md border border-border bg-background/60 p-3 font-mono text-xs leading-6">
             <div className="text-muted-foreground">Input</div>
             <div>[[1,3],[2,6],[8,10],[15,18]]</div>
             <div className="mt-1 text-muted-foreground">Output</div>
@@ -177,7 +178,7 @@ export function InterviewDemo() {
             </div>
           </div>
 
-          <div className="relative flex-1">
+          <div className="relative min-h-64 flex-1 sm:min-h-80 lg:min-h-0">
             {/* code */}
             <div
               className={`absolute inset-0 overflow-auto p-4 font-mono text-[13px] leading-6 transition-opacity duration-500 ${
@@ -309,7 +310,7 @@ export function InterviewDemo() {
         </section>
 
         {/* Video + chat */}
-        <aside className="flex flex-col gap-3 p-3">
+        <aside className="grid min-w-0 grid-cols-2 gap-2 p-2.5 sm:gap-3 sm:p-3 lg:flex lg:flex-col">
           {[
             { src: camInterviewer, name: "Daniel · Interviewer", speaking: chat % 2 === 1 },
             { src: camCandidate, name: "Sara · You", speaking: chat % 2 === 0 && chat > 0 },
@@ -321,7 +322,7 @@ export function InterviewDemo() {
               }`}
             >
               <img src={v.src} alt={v.name} loading="lazy" width={944} height={626} className="kenburns aspect-[4/3] w-full object-cover" />
-              <div className="absolute bottom-2 left-2 flex items-center gap-2 rounded bg-background/70 px-2 py-0.5 text-[11px]">
+              <div className="absolute bottom-1 left-1 flex max-w-[95%] items-center gap-1 rounded bg-background/80 px-1.5 py-0.5 text-[9px] min-[400px]:text-[11px] sm:bottom-2 sm:left-2 sm:gap-2 sm:px-2">
                 {v.speaking && (
                   <span className="flex items-end gap-0.5">
                     {[0, 1, 2].map((b) => (
@@ -329,11 +330,11 @@ export function InterviewDemo() {
                     ))}
                   </span>
                 )}
-                {v.name}
+                <span className="truncate">{v.name}</span>
               </div>
             </div>
           ))}
-          <div className="flex flex-1 flex-col gap-2 rounded-lg border border-border p-3 text-xs">
+          <div className="col-span-2 flex min-h-28 flex-col gap-2 rounded-lg border border-border p-3 text-xs lg:min-h-0">
             {CHAT.slice(0, chat).map((m, i) => (
               <div key={i} className="animate-fade-in">
                 <span className={m.who === "You" ? "text-accent" : "text-primary"}>{m.who}</span>

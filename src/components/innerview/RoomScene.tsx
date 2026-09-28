@@ -34,8 +34,8 @@ function makeHeadMaterial(
     if (tint) m.color = new THREE.Color(tint);
     m.envMapIntensity = 0.6;
     m.onBeforeCompile = (s) => {
-      s.uniforms.uYaw = uniforms.uYaw;
-      s.uniforms.uPitch = uniforms.uPitch;
+      s.uniforms["uYaw"] = uniforms.uYaw;
+      s.uniforms["uPitch"] = uniforms.uPitch;
       s.vertexShader =
         `uniform float uYaw; uniform float uPitch;
          uniform vec3 uPivot; uniform float uNeckLo; uniform float uNeckHi;
@@ -55,15 +55,15 @@ function makeHeadMaterial(
           `#include <begin_vertex>
            transformed = uPivot + hr * (transformed - uPivot);`,
         );
-      s.uniforms.uPivot = { value: neck.pivot };
-      s.uniforms.uNeckLo = { value: neck.lo };
-      s.uniforms.uNeckHi = { value: neck.hi };
+      s.uniforms["uPivot"] = { value: neck.pivot };
+      s.uniforms["uNeckLo"] = { value: neck.lo };
+      s.uniforms["uNeckHi"] = { value: neck.hi };
     };
     // distinct program per person so tint/uniform wiring never collides
     m.customProgramCacheKey = () => `head-bend`;
     return m;
   });
-  return Array.isArray(src) ? out : out[0];
+  return Array.isArray(src) ? out : out[0]!;
 }
 
 function Person({
@@ -344,8 +344,8 @@ function useScreenTexture(remote: string) {
       [90, 120],
     ].forEach(([a, b], i) => {
       g.beginPath();
-      g.moveTo(486 + a, 310 + i * 22);
-      g.lineTo(486 + b, 310 + i * 22);
+      g.moveTo(486 + a!, 310 + i * 22);
+      g.lineTo(486 + b!, 310 + i * 22);
       g.stroke();
     });
     tex.needsUpdate = true;
@@ -476,11 +476,11 @@ function CameraRig() {
   const camPosCurve = useMemo(() => {
     // Pad both ends with the endpoint duplicated so the curve eases to a stop
     // instead of launching into / out of the story.
-    const pts = [KEYS[0], ...KEYS, KEYS[KEYS.length - 1]].map((k) => new THREE.Vector3(...k.pos));
+    const pts = [KEYS[0]!, ...KEYS, KEYS[KEYS.length - 1]!].map((k) => new THREE.Vector3(...k.pos));
     return new THREE.CatmullRomCurve3(pts, false, "centripetal");
   }, []);
   const camTgtCurve = useMemo(() => {
-    const pts = [KEYS[0], ...KEYS, KEYS[KEYS.length - 1]].map((k) => new THREE.Vector3(...k.tgt));
+    const pts = [KEYS[0]!, ...KEYS, KEYS[KEYS.length - 1]!].map((k) => new THREE.Vector3(...k.tgt));
     return new THREE.CatmullRomCurve3(pts, false, "centripetal");
   }, []);
   // Map normalized story progress (0..1 across KEYS) onto the padded curve
@@ -496,7 +496,8 @@ function CameraRig() {
     // Handheld drift — layered, sub-pixel-ish amplitudes that fade to nothing
     // near the screen dive so the end transition is stable.
     const portrait = size.width < size.height;
-    if (portrait) pos.lerp(tgt, -0.25);
+    const overview = portrait ? 1 - smooth(0.08, 0.2, p) : 0;
+    if (portrait) pos.lerp(tgt, -(0.25 + 0.5 * overview));
     const drift = 1 - smooth(0.88, 1, p);
     const ct = clock.elapsedTime;
     pos.x += (Math.sin(ct * 0.41) * 0.5 + Math.sin(ct * 0.97 + 1.7) * 0.3) * 0.022 * drift;
@@ -508,7 +509,8 @@ function CameraRig() {
     camera.lookAt(tgt);
     const cam = camera as THREE.PerspectiveCamera;
     const fovT = smooth(0.15, 0.34, p) * (1 - smooth(0.46, 0.56, p));
-    const fov = THREE.MathUtils.lerp(portrait ? 46 : 38, portrait ? 36 : 30, fovT);
+    const storyFov = THREE.MathUtils.lerp(portrait ? 46 : 38, portrait ? 36 : 30, fovT);
+    const fov = THREE.MathUtils.lerp(storyFov, 58, overview);
     if (Math.abs(cam.fov - fov) > 0.01) {
       cam.fov = fov;
       cam.updateProjectionMatrix();
