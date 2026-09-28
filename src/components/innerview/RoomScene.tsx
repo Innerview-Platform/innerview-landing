@@ -1,6 +1,6 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, Lightformer, useGLTF } from "@react-three/drei";
-import { Suspense, useMemo, useRef } from "react";
+import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import camInterviewer from "@/assets/cam-interviewer.jpg";
 import camCandidate from "@/assets/cam-candidate.jpg";
@@ -79,7 +79,7 @@ function Person({
   tint: string | null;
   phase: number;
 }) {
-  const { scene } = useGLTF(url);
+  const { scene } = useGLTF(url, false);
   const group = useRef<THREE.Group>(null);
   const { uniforms, wrap } = useMemo(() => {
     const obj = scene.clone(true);
@@ -348,6 +348,49 @@ function useScreenTexture(remote: string) {
   return tex;
 }
 
+const KEY_POSITIONS: [number, number][] = Array.from({ length: 5 }, (_, row) => {
+  const columns =
+    row === 4 ? [0, 1, 2, 3, 9, 10, 11, 12] : Array.from({ length: 13 }, (_, column) => column);
+  return columns.map((column): [number, number] => [(column - 6) * 0.0235, -0.096 + row * 0.024]);
+}).flat();
+
+function Keyboard() {
+  const keys = useRef<THREE.InstancedMesh>(null);
+
+  useLayoutEffect(() => {
+    const mesh = keys.current;
+    if (!mesh) return;
+    const key = new THREE.Object3D();
+    KEY_POSITIONS.forEach(([x, z], i) => {
+      key.position.set(x, 0.024, z);
+      key.updateMatrix();
+      mesh.setMatrixAt(i, key.matrix);
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+  }, []);
+
+  return (
+    <group>
+      <mesh position={[0, 0.0197, -0.046]}>
+        <boxGeometry args={[0.326, 0.001, 0.154]} />
+        <meshStandardMaterial color="#17191c" metalness={0.25} roughness={0.65} />
+      </mesh>
+      <instancedMesh ref={keys} args={[undefined, undefined, KEY_POSITIONS.length]}>
+        <boxGeometry args={[0.019, 0.004, 0.018]} />
+        <meshStandardMaterial color="#41444a" metalness={0.3} roughness={0.55} />
+      </instancedMesh>
+      <mesh position={[0, 0.024, 0]}>
+        <boxGeometry args={[0.113, 0.004, 0.018]} />
+        <meshStandardMaterial color="#41444a" metalness={0.3} roughness={0.55} />
+      </mesh>
+      <mesh position={[0, 0.0197, 0.082]}>
+        <boxGeometry args={[0.105, 0.001, 0.05]} />
+        <meshStandardMaterial color="#26282c" metalness={0.45} roughness={0.5} />
+      </mesh>
+    </group>
+  );
+}
+
 function Laptop({ z, flip, remote }: { z: number; flip: boolean; remote: string }) {
   const tex = useScreenTexture(remote);
   return (
@@ -357,6 +400,7 @@ function Laptop({ z, flip, remote }: { z: number; flip: boolean; remote: string 
         <boxGeometry args={[0.36, 0.018, 0.25]} />
         <meshStandardMaterial color="#3a3a3c" metalness={0.8} roughness={0.35} />
       </mesh>
+      <Keyboard />
       <group position={[0, 0.02, -0.12]} rotation-x={-0.26}>
         <mesh position={[0, 0.115, -0.006]} castShadow>
           <boxGeometry args={[0.36, 0.235, 0.01]} />
@@ -507,7 +551,12 @@ function World() {
   );
 }
 
-export default function RoomScene() {
+function SceneReady({ onReady }: { onReady: (ready: boolean) => void }) {
+  useEffect(() => onReady(true), [onReady]);
+  return null;
+}
+
+export default function RoomScene({ onReady }: { onReady: (ready: boolean) => void }) {
   // NOTE: we intentionally don't clear the GLTF cache on unmount — the scene
   // remounts during development / re-navigation, and refetching two ~9 MB
   // models each time stalls the intro.
@@ -553,6 +602,7 @@ export default function RoomScene() {
       </Environment>
       <Suspense fallback={null}>
         <World />
+        <SceneReady onReady={onReady} />
       </Suspense>
       <CameraRig />
     </Canvas>

@@ -178,6 +178,163 @@
 html { background: var(--background); }
 body { font-family: var(--font-sans); }
 
+/* ---------------------------------------------------------------------------
+ * Living background
+ *
+ * A fixed, pointer-transparent layer that sits behind every section: a warm
+ * "lamp" wash from the top, slow-drifting colour auroras, a cursor-follow
+ * glow and a fine film grain. Content above it uses translucent surfaces so
+ * the movement reads through.
+ * ------------------------------------------------------------------------ */
+.live-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(130% 75% at 50% -15%, oklch(0.24 0.035 65 / 0.55), transparent 62%),
+    radial-gradient(110% 70% at 50% 115%, oklch(0.19 0.025 245 / 0.5), transparent 68%);
+}
+
+/* A little of the room's light moves across the otherwise opaque 3D scene. */
+.story-atmosphere {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  mix-blend-mode: screen;
+}
+
+.story-scene-placeholder {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse at 68% 35%, oklch(0.43 0.08 65 / 0.38), transparent 45%),
+    radial-gradient(ellipse at 24% 75%, oklch(0.31 0.06 245 / 0.32), transparent 55%),
+    #0b0a0b;
+  transition: opacity 700ms ease;
+}
+
+.story-atmosphere::before,
+.story-atmosphere::after {
+  content: "";
+  position: absolute;
+  inset: -20%;
+  will-change: transform, opacity;
+}
+
+.story-atmosphere::before {
+  background: radial-gradient(ellipse 40% 55% at 75% 20%, oklch(0.8 0.14 70 / 0.08), transparent 75%);
+  animation: room-glow-warm 18s ease-in-out infinite alternate;
+}
+
+.story-atmosphere::after {
+  background: radial-gradient(ellipse 35% 50% at 85% 75%, oklch(0.72 0.09 235 / 0.065), transparent 75%);
+  animation: room-glow-cool 24s ease-in-out infinite alternate;
+}
+
+@keyframes room-glow-warm {
+  from { transform: translate3d(-3%, -2%, 0); opacity: 0.55; }
+  to { transform: translate3d(4%, 3%, 0); opacity: 1; }
+}
+
+@keyframes room-glow-cool {
+  from { transform: translate3d(3%, 2%, 0); opacity: 0.5; }
+  to { transform: translate3d(-4%, -3%, 0); opacity: 1; }
+}
+
+.aurora {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+}
+
+/* warm lamp spill */
+.aurora-a {
+  left: -22%;
+  top: -28%;
+  width: 78vw;
+  height: 78vw;
+  background: radial-gradient(circle, oklch(0.8 0.14 70 / 0.15), transparent 62%);
+  animation: drift-a 37s ease-in-out infinite;
+}
+
+/* cool screen light */
+.aurora-b {
+  right: -26%;
+  top: 12%;
+  width: 86vw;
+  height: 86vw;
+  background: radial-gradient(circle, oklch(0.72 0.09 235 / 0.14), transparent 65%);
+  animation: drift-b 53s ease-in-out infinite;
+}
+
+/* deep ember, keeps the lower half from going flat */
+.aurora-c {
+  left: 18%;
+  bottom: -40%;
+  width: 96vw;
+  height: 96vw;
+  background: radial-gradient(circle, oklch(0.68 0.11 25 / 0.1), transparent 62%);
+  animation: drift-c 71s ease-in-out infinite;
+}
+
+@keyframes drift-a {
+  0%, 100% { transform: translate3d(-6%, -4%, 0) scale(1); }
+  50% { transform: translate3d(8%, 6%, 0) scale(1.14); }
+}
+@keyframes drift-b {
+  0%, 100% { transform: translate3d(5%, 3%, 0) scale(1.08); }
+  50% { transform: translate3d(-7%, -6%, 0) scale(1); }
+}
+@keyframes drift-c {
+  0%, 100% { transform: translate3d(0, 2%, 0) scale(1); }
+  50% { transform: translate3d(-9%, -5%, 0) scale(1.12); }
+}
+
+/* follows the pointer with a little lag — set by LiveBackground */
+.cursor-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    460px circle at var(--mx, 50%) var(--my, 25%),
+    oklch(0.8 0.14 70 / 0.07),
+    transparent 70%
+  );
+}
+
+.grain {
+  position: absolute;
+  inset: -50%;
+  width: 200%;
+  height: 200%;
+  opacity: 0.055;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  will-change: transform;
+  animation: grain 6s steps(6) infinite;
+}
+
+@keyframes grain {
+  0% { transform: translate(0, 0); }
+  16% { transform: translate(-4%, -5%); }
+  33% { transform: translate(3%, -3%); }
+  50% { transform: translate(-3%, 4%); }
+  66% { transform: translate(4%, 2%); }
+  83% { transform: translate(-2%, -4%); }
+  100% { transform: translate(0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aurora,
+  .grain,
+  .story-atmosphere::before,
+  .story-atmosphere::after {
+    animation: none;
+  }
+}
+
 @keyframes draw { from { stroke-dashoffset: 600; } to { stroke-dashoffset: 0; } }
 .draw { stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw 1.2s ease-out forwards; }
 @keyframes kenburns { from { transform: scale(1.02); } to { transform: scale(1.1) translate(-1%, 1%); } }

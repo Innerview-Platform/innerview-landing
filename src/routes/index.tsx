@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useProgress } from "@react-three/drei";
-import { useEffect, useRef, useState } from "react";
-import RoomScene from "@/components/innerview/RoomScene";
-import { InterviewDemo } from "@/components/innerview/InterviewDemo";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { LiveBackground } from "@/components/innerview/LiveBackground";
 import { scrollState, smooth } from "@/components/innerview/scroll-state";
 
+const RoomScene = lazy(() => import("@/components/innerview/RoomScene"));
+const InterviewDemo = lazy(() =>
+  import("@/components/innerview/InterviewDemo").then(({ InterviewDemo }) => ({ default: InterviewDemo })),
+);
+
 export const Route = createFileRoute("/")({
-  ssr: false,
   head: () => ({
     meta: [
       { title: "Innerview — Mock interviews with real people" },
@@ -36,26 +38,39 @@ const CHAPTERS = [
   { a: 0.8, b: 0.9, kicker: "05 — The verdict", title: "Run it. Hear the truth.", body: "Tests land on both screens — then honest feedback from a human who just watched you work." },
 ];
 
-function Loader() {
-  const { progress, active } = useProgress();
-  return (
-    <div
-      className={`pointer-events-none fixed inset-0 z-50 flex flex-col items-center justify-center bg-background transition-opacity duration-1000 ${
-        active || progress < 100 ? "opacity-100" : "opacity-0"
-      }`}
-    >
-      <span className="font-display text-4xl italic text-primary">Innerview</span>
-      <div className="mt-4 h-px w-48 bg-border">
-        <div className="h-px bg-primary transition-all" style={{ width: `${progress}%` }} />
-      </div>
-      <span className="mt-3 font-mono text-xs text-muted-foreground">Finding your interviewer · {Math.round(progress)}%</span>
-    </div>
-  );
-}
-
 function Index() {
   const story = useRef<HTMLDivElement>(null);
+  const demo = useRef<HTMLElement>(null);
   const [p, setP] = useState(0);
+  const [loadScene, setLoadScene] = useState(false);
+  const [sceneReady, setSceneReady] = useState(false);
+  const [loadDemo, setLoadDemo] = useState(false);
+
+  useEffect(() => {
+    const connection = (navigator as Navigator & {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }).connection;
+    if (connection?.saveData || ["slow-2g", "2g", "3g"].includes(connection?.effectiveType ?? "")) return;
+
+    const timer = window.setTimeout(() => setLoadScene(true), 250);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    const element = demo.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setLoadDemo(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "600px" },
+    );
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     let raf = 0;
@@ -68,6 +83,7 @@ function Index() {
         const v = Math.min(1, Math.max(0, -r.top / (r.height - window.innerHeight)));
         scrollState.target = v;
         setP(v);
+        if (v > 0.003 && v < 0.95) setLoadScene(true);
       });
     };
     onScroll();
@@ -82,8 +98,8 @@ function Index() {
   const dive = smooth(0.93, 1, p);
 
   return (
-    <main className="bg-background text-foreground">
-      <Loader />
+    <main className="relative text-foreground">
+      <LiveBackground />
 
       {/* Nav */}
       <header className="fixed inset-x-0 top-0 z-40 flex items-center justify-between px-6 py-5 md:px-10">
@@ -97,15 +113,22 @@ function Index() {
       </header>
 
       {/* Scrollytelling story */}
-      <div ref={story} className="relative" style={{ height: "900vh" }}>
+      <div ref={story} className="relative z-10" style={{ height: "900vh" }}>
         <div className="sticky top-0 h-screen w-full overflow-hidden">
-          <RoomScene />
+          <Suspense fallback={null}>
+            {loadScene && <RoomScene onReady={setSceneReady} />}
+          </Suspense>
+          <div
+            className={`story-scene-placeholder ${sceneReady ? "opacity-0" : "opacity-100"}`}
+            aria-hidden="true"
+          />
 
           {/* vignette */}
           <div
             className="pointer-events-none absolute inset-0"
             style={{ background: "radial-gradient(ellipse at center, transparent 45%, var(--background) 110%)" }}
           />
+          <div className="story-atmosphere" aria-hidden="true" />
 
           {/* chapters */}
           {CHAPTERS.map((c) => {
@@ -155,7 +178,7 @@ function Index() {
       </div>
 
       {/* Live demo */}
-      <section id="demo" className="relative px-4 pb-24 pt-10 md:px-8">
+      <section ref={demo} id="demo" className="relative z-10 px-4 pb-24 pt-10 md:px-8">
         <div className="mx-auto mb-10 max-w-3xl text-center">
           <div className="font-mono text-xs uppercase tracking-[0.2em] text-primary">You're in</div>
           <h2 className="mt-3 font-display text-5xl md:text-7xl">This is the interview.</h2>
@@ -163,18 +186,23 @@ function Index() {
             Video, problem, code, canvas and tests — one room, two people, zero tab‑switching.
           </p>
         </div>
-        <InterviewDemo />
+        <Suspense fallback={<div className="min-h-[680px] rounded-xl border border-border bg-panel/80" />}>
+          {loadDemo ? <InterviewDemo /> : <div className="min-h-[680px] rounded-xl border border-border bg-panel/80" />}
+        </Suspense>
       </section>
 
       {/* Features */}
-      <section className="mx-auto grid max-w-6xl gap-px overflow-hidden rounded-xl border border-border bg-border md:grid-cols-4">
+      <section className="relative z-10 mx-auto grid max-w-6xl gap-px overflow-hidden rounded-xl border border-border bg-border/60 backdrop-blur-sm md:grid-cols-4">
         {[
           ["Video call", "Built‑in HD video with speaker focus and recording."],
           ["Shared editor", "Live cursors, 20+ languages, syntax highlighting."],
           ["Shared canvas", "Whiteboard systems and algorithms together."],
           ["Test cases", "Hidden and visible tests, run in a sandbox, instantly."],
         ].map(([t, d], i) => (
-          <div key={t} className="bg-background p-8">
+          <div
+            key={t}
+            className="group bg-background/60 p-8 transition-colors duration-500 hover:bg-background/25"
+          >
             <div className="font-mono text-xs text-primary">0{i + 1}</div>
             <h3 className="mt-6 font-display text-3xl">{t}</h3>
             <p className="mt-2 text-sm text-muted-foreground">{d}</p>
@@ -182,7 +210,7 @@ function Index() {
         ))}
       </section>
 
-      <section className="px-6 py-32 text-center">
+      <section className="relative z-10 px-6 py-32 text-center">
         <h2 className="font-display text-6xl italic md:text-8xl">Pull up a chair.</h2>
         <p className="mx-auto mt-5 max-w-md text-muted-foreground">
           Run your next technical interview on Innerview.
@@ -195,7 +223,7 @@ function Index() {
         </a>
       </section>
 
-      <footer className="border-t border-border px-6 py-8 text-center font-mono text-xs text-muted-foreground">
+      <footer className="relative z-10 border-t border-border px-6 py-8 text-center font-mono text-xs text-muted-foreground">
         © {new Date().getFullYear()} Innerview
       </footer>
     </main>
