@@ -217,6 +217,125 @@ body { font-family: var(--font-sans); }
   transition: opacity 700ms ease;
 }
 
+.scene-loading-screen {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 1.25rem;
+  color: var(--foreground);
+  background:
+    radial-gradient(ellipse at 50% 35%, oklch(0.3 0.065 70 / 0.25), transparent 42%),
+    radial-gradient(ellipse at 12% 90%, oklch(0.23 0.055 240 / 0.2), transparent 42%),
+    oklch(0.105 0.01 260);
+  pointer-events: auto;
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+.scene-loading-card {
+  width: min(100%, 31rem);
+  padding: clamp(1.5rem, 6vw, 2.75rem);
+  border: 1px solid oklch(0.9 0.03 80 / 0.12);
+  border-radius: 1.25rem;
+  background: linear-gradient(145deg, oklch(0.19 0.025 260 / 0.9), oklch(0.13 0.015 260 / 0.86));
+  box-shadow: 0 32px 100px oklch(0.03 0.02 260 / 0.7), inset 0 1px oklch(1 0 0 / 0.06);
+  text-align: center;
+  backdrop-filter: blur(24px);
+}
+
+.scene-loading-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  color: oklch(0.8 0.08 75);
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.16em;
+}
+
+.scene-loading-separator {
+  padding-inline: 0.2rem;
+  color: oklch(0.66 0.02 260 / 0.7);
+}
+
+.scene-loading-card h1 {
+  margin-top: 1.75rem;
+  font-family: var(--font-display);
+  font-size: clamp(2.75rem, 9vw, 4.4rem);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.035em;
+  line-height: 0.95;
+}
+
+.scene-loading-card > p {
+  margin-top: 0.8rem;
+  color: var(--muted-foreground);
+  font-size: 0.95rem;
+}
+
+.scene-loading-details {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 2.25rem;
+  color: oklch(0.82 0.02 80);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.scene-loading-details > span:last-child {
+  color: oklch(0.83 0.1 78);
+}
+
+.scene-loading-track {
+  height: 3px;
+  margin-top: 0.7rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: oklch(1 0 0 / 0.1);
+}
+
+.scene-loading-track > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, oklch(0.7 0.12 70), oklch(0.86 0.1 84));
+  box-shadow: 0 0 16px oklch(0.77 0.13 78 / 0.7);
+  transition: width 300ms ease-out;
+}
+
+.scene-loading-footnote {
+  display: block;
+  margin-top: 1rem;
+  color: oklch(0.65 0.015 80);
+  font-size: 0.75rem;
+}
+
+.scene-loading-spinner {
+  width: 1.125rem;
+  height: 1.125rem;
+  border: 2px solid oklch(0.9 0.03 260 / 0.2);
+  border-top-color: oklch(0.8 0.12 75);
+  border-radius: 50%;
+  animation: scene-loading-spin 900ms linear infinite;
+}
+
+@keyframes scene-loading-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-loading-spinner {
+    animation: none;
+  }
+}
+
 .story-atmosphere::before,
 .story-atmosphere::after {
   content: "";

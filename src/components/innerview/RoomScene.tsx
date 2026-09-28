@@ -1,5 +1,5 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Environment, Lightformer, useGLTF } from "@react-three/drei";
+import { Environment, Lightformer, useGLTF, useProgress } from "@react-three/drei";
 import { Suspense, useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import camInterviewer from "@/assets/cam-interviewer.jpg";
@@ -556,7 +556,19 @@ function SceneReady({ onReady }: { onReady: (ready: boolean) => void }) {
   return null;
 }
 
-export default function RoomScene({ onReady }: { onReady: (ready: boolean) => void }) {
+function SceneLoadProgress({ onProgress }: { onProgress: (progress: number) => void }) {
+  const progress = useProgress((state) => state.progress);
+  useEffect(() => onProgress(progress), [onProgress, progress]);
+  return null;
+}
+
+export default function RoomScene({
+  onReady,
+  onProgress,
+}: {
+  onReady: (ready: boolean) => void;
+  onProgress: (progress: number) => void;
+}) {
   // NOTE: we intentionally don't clear the GLTF cache on unmount — the scene
   // remounts during development / re-navigation, and refetching two ~9 MB
   // models each time stalls the intro.
@@ -600,6 +612,7 @@ export default function RoomScene({ onReady }: { onReady: (ready: boolean) => vo
           color="#5f7fb0"
         />
       </Environment>
+      <SceneLoadProgress onProgress={onProgress} />
       <Suspense fallback={null}>
         <World />
         <SceneReady onReady={onReady} />

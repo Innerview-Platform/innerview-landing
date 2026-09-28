@@ -42,19 +42,50 @@ function Index() {
   const story = useRef<HTMLDivElement>(null);
   const demo = useRef<HTMLElement>(null);
   const [p, setP] = useState(0);
-  const [loadScene, setLoadScene] = useState(false);
   const [sceneReady, setSceneReady] = useState(false);
+  const [sceneProgress, setSceneProgress] = useState(0);
+  const [sceneLoadElapsed, setSceneLoadElapsed] = useState(0);
   const [loadDemo, setLoadDemo] = useState(false);
+  const sceneGateActive = !sceneReady;
 
   useEffect(() => {
-    const connection = (navigator as Navigator & {
-      connection?: { saveData?: boolean; effectiveType?: string };
-    }).connection;
-    if (connection?.saveData || ["slow-2g", "2g", "3g"].includes(connection?.effectiveType ?? "")) return;
+    if (!sceneGateActive) return;
 
-    const timer = window.setTimeout(() => setLoadScene(true), 250);
-    return () => window.clearTimeout(timer);
-  }, []);
+    const html = document.documentElement;
+    const body = document.body;
+    const previousHtmlOverflow = html.style.overflow;
+    const previousBodyOverflow = body.style.overflow;
+    const previousHtmlOverscroll = html.style.overscrollBehavior;
+    const previousTouchAction = body.style.touchAction;
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    body.style.overflow = "hidden";
+    body.style.touchAction = "none";
+
+    const preventScrollKeys = (event: KeyboardEvent) => {
+      if ([" ", "ArrowDown", "ArrowUp", "PageDown", "PageUp", "Home", "End"].includes(event.key)) {
+        event.preventDefault();
+      }
+    };
+    window.addEventListener("keydown", preventScrollKeys, { capture: true });
+
+    return () => {
+      html.style.overflow = previousHtmlOverflow;
+      html.style.overscrollBehavior = previousHtmlOverscroll;
+      body.style.overflow = previousBodyOverflow;
+      body.style.touchAction = previousTouchAction;
+      window.removeEventListener("keydown", preventScrollKeys, { capture: true });
+    };
+  }, [sceneGateActive]);
+
+  useEffect(() => {
+    if (!sceneGateActive) return;
+    const startedAt = performance.now();
+    const timer = window.setInterval(() => {
+      setSceneLoadElapsed((performance.now() - startedAt) / 1000);
+    }, 250);
+    return () => window.clearInterval(timer);
+  }, [sceneGateActive]);
 
   useEffect(() => {
     const element = demo.current;
@@ -83,7 +114,6 @@ function Index() {
         const v = Math.min(1, Math.max(0, -r.top / (r.height - window.innerHeight)));
         scrollState.target = v;
         setP(v);
-        if (v > 0.003 && v < 0.95) setLoadScene(true);
       });
     };
     onScroll();
@@ -96,9 +126,24 @@ function Index() {
   }, []);
 
   const dive = smooth(0.93, 1, p);
+  const displayedProgress = sceneReady ? 100 : Math.min(98, Math.max(0, Math.round(sceneProgress)));
+  const secondsRemaining =
+    displayedProgress > 0 && sceneLoadElapsed > 0
+      ? Math.max(1, Math.ceil((sceneLoadElapsed * (100 - displayedProgress)) / displayedProgress))
+      : null;
+  const remainingLabel = sceneReady
+    ? "Ready"
+    : sceneProgress >= 100
+      ? "Finishing the room…"
+      : secondsRemaining == null
+        ? "Estimating remaining time…"
+        : secondsRemaining >= 60
+          ? `About ${Math.ceil(secondsRemaining / 60)} min left`
+          : `About ${secondsRemaining} sec left`;
 
   return (
-    <main className="relative text-foreground">
+    <>
+    <main className="relative text-foreground" inert={sceneGateActive} aria-busy={sceneGateActive}>
       <LiveBackground />
 
       {/* Nav */}
@@ -116,7 +161,7 @@ function Index() {
       <div ref={story} className="relative z-10" style={{ height: "900vh" }}>
         <div className="sticky top-0 h-screen w-full overflow-hidden">
           <Suspense fallback={null}>
-            {loadScene && <RoomScene onReady={setSceneReady} />}
+            <RoomScene onReady={setSceneReady} onProgress={setSceneProgress} />
           </Suspense>
           <div
             className={`story-scene-placeholder ${sceneReady ? "opacity-0" : "opacity-100"}`}
@@ -227,5 +272,33 @@ function Index() {
         © {new Date().getFullYear()} Innerview
       </footer>
     </main>
+    {sceneGateActive && (
+      <div className="scene-loading-screen" role="status" aria-live="polite">
+        <div className="scene-loading-card">
+          <div className="scene-loading-brand">
+            <span className="scene-loading-spinner" aria-hidden="true" />
+            <span>INNERVIEW <span className="scene-loading-separator">/</span> 3D ROOM</span>
+          </div>
+          <h1>Pulling up a chair</h1>
+          <p>Preparing the interview room and its graphics.</p>
+          <div className="scene-loading-details">
+            <span>{remainingLabel}</span>
+            <span>{displayedProgress}%</span>
+          </div>
+          <div
+            className="scene-loading-track"
+            role="progressbar"
+            aria-label="Interview room graphics loading"
+            aria-valuemin={0}
+            aria-valuemax={100}
+            aria-valuenow={displayedProgress}
+          >
+            <span style={{ width: `${displayedProgress}%` }} />
+          </div>
+          <span className="scene-loading-footnote">The experience will open as soon as the room is ready.</span>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
