@@ -159,7 +159,7 @@ function Person({
 /* ---------- Props ---------- */
 function Chair() {
   return (
-    <group position={[0.03, 0, -0.2]}>
+    <group position={[0.03, 0, -0.42]}>
       <mesh position={[0, 0.85, 0]} castShadow receiveShadow>
         <boxGeometry args={[0.62, 0.07, 0.6]} />
         <meshStandardMaterial color="#1b1612" roughness={0.6} />
