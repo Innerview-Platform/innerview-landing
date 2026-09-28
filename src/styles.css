@@ -175,8 +175,21 @@
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
+html,
+body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
+
 html { background: var(--background); }
 body { font-family: var(--font-sans); }
+
+main {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: clip;
+}
 
 /* ---------------------------------------------------------------------------
  * Living background

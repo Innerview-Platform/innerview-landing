@@ -72,12 +72,14 @@ function Person({
   rotationY,
   tint,
   phase,
+  chairX,
 }: {
   url: string;
   position: [number, number, number];
   rotationY: number;
   tint: string | null;
   phase: number;
+  chairX: number;
 }) {
   const { scene } = useGLTF(url, false);
   const group = useRef<THREE.Group>(null);
@@ -151,27 +153,30 @@ function Person({
       <group ref={group}>
         <primitive object={wrap} />
       </group>
-      <Chair />
+      <Chair offsetX={chairX} />
     </group>
   );
 }
 
 /* ---------- Props ---------- */
-function Chair() {
+function Chair({ offsetX }: { offsetX: number }) {
+  // The models' hips sit around y=0.85 and z=-0.12 after normalization.
+  const seatY = 0.73;
+  const legHeight = seatY - 0.03;
   return (
-    <group position={[0.03, 0, -0.42]}>
-      <mesh position={[0, 0.85, 0]} castShadow receiveShadow>
-        <boxGeometry args={[0.62, 0.07, 0.6]} />
+    <group position={[offsetX, 0, -0.13]}>
+      <mesh position={[0, seatY, 0]} castShadow receiveShadow>
+        <boxGeometry args={[0.62, 0.06, 0.55]} />
         <meshStandardMaterial color="#1b1612" roughness={0.6} />
       </mesh>
-      <mesh position={[0, 1.35, -0.33]} rotation-x={-0.08} castShadow>
-        <boxGeometry args={[0.62, 0.9, 0.06]} />
+      <mesh position={[0, 1.25, -0.32]} rotation-x={-0.08} castShadow>
+        <boxGeometry args={[0.62, 0.86, 0.06]} />
         <meshStandardMaterial color="#1b1612" roughness={0.6} />
       </mesh>
-      {[-0.26, 0.26].flatMap((x) =>
-        [-0.26, 0.26].map((z) => (
-          <mesh key={`${x}${z}`} position={[x, 0.41, z]}>
-            <cylinderGeometry args={[0.018, 0.018, 0.82]} />
+      {[-0.25, 0.25].flatMap((x) =>
+        [-0.22, 0.22].map((z) => (
+          <mesh key={`${x}${z}`} position={[x, legHeight / 2, z]}>
+            <cylinderGeometry args={[0.018, 0.018, legHeight]} />
             <meshStandardMaterial color="#0c0c0c" metalness={0.8} roughness={0.35} />
           </mesh>
         )),
@@ -490,6 +495,8 @@ function CameraRig() {
     camTgtCurve.getPoint(u, tgt);
     // Handheld drift — layered, sub-pixel-ish amplitudes that fade to nothing
     // near the screen dive so the end transition is stable.
+    const portrait = size.width < size.height;
+    if (portrait) pos.lerp(tgt, -0.25);
     const drift = 1 - smooth(0.88, 1, p);
     const ct = clock.elapsedTime;
     pos.x += (Math.sin(ct * 0.41) * 0.5 + Math.sin(ct * 0.97 + 1.7) * 0.3) * 0.022 * drift;
@@ -501,7 +508,6 @@ function CameraRig() {
     camera.lookAt(tgt);
     const cam = camera as THREE.PerspectiveCamera;
     const fovT = smooth(0.15, 0.34, p) * (1 - smooth(0.46, 0.56, p));
-    const portrait = size.width < size.height;
     const fov = THREE.MathUtils.lerp(portrait ? 46 : 38, portrait ? 36 : 30, fovT);
     if (Math.abs(cam.fov - fov) > 0.01) {
       cam.fov = fov;
@@ -538,6 +544,7 @@ function World() {
         rotationY={0}
         tint="#ffffff"
         phase={0}
+        chairX={0.06}
       />
       <Person
         url={INTERVIEWEE_URL}
@@ -545,6 +552,7 @@ function World() {
         rotationY={Math.PI}
         tint={null}
         phase={2.3}
+        chairX={0.12}
       />
       <Laptop z={-0.36} flip remote={camCandidate} />
       <Laptop z={0.36} flip={false} remote={camInterviewer} />
