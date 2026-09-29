@@ -488,6 +488,14 @@ main {
 .eq { animation: eq 0.6s ease-in-out infinite; }
 
 @media (max-width: 767px) {
+  .story-copy {
+    text-shadow: 0 2px 16px oklch(0 0 0 / 0.95), 0 0 36px oklch(0 0 0 / 0.85);
+  }
+
+  .story-copy p {
+    color: var(--foreground);
+  }
+
   .grain,
   .cursor-glow {
     display: none;

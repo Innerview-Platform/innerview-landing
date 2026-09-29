@@ -196,7 +196,7 @@ function Index() {
       </header>
 
       {/* Scrollytelling story */}
-      <div ref={story} className="relative z-10 md:h-[900vh]">
+      <div ref={story} className="relative z-10 h-[900svh] md:h-[900vh]">
         <div className="sticky top-0 h-[100svh] w-full overflow-hidden md:h-screen">
           {!sceneUnavailable && compact !== null && (
             <SceneErrorBoundary onError={() => setSceneUnavailable(true)}>
@@ -225,18 +225,18 @@ function Index() {
             return (
               <div
                 key={c.title}
-                className={`pointer-events-none absolute inset-0 hidden px-5 sm:px-6 md:flex md:px-16 ${
+                className={`pointer-events-none absolute inset-0 flex px-5 sm:px-6 md:px-16 ${
                   c.hero ? "items-end justify-start pb-16 sm:pb-24" : "items-center justify-start py-16"
                 }`}
                 style={{ opacity: show, transform: `translateY(${y}px)` }}
               >
-                <div className={c.hero ? "max-w-3xl" : "max-w-md"}>
+                <div className={`story-copy w-full ${c.hero ? "max-w-3xl" : "max-w-md"}`}>
                   {c.kicker && (
                     <div className="mb-3 font-mono text-xs uppercase tracking-[0.2em] text-primary">{c.kicker}</div>
                   )}
                   <h2
                     className={`font-display leading-[0.95] ${
-                      c.hero ? "text-6xl italic sm:text-7xl md:text-[9rem]" : "text-4xl sm:text-5xl md:text-6xl"
+                      c.hero ? "text-[clamp(2.75rem,14vw,5.5rem)] italic sm:text-7xl md:text-[9rem]" : "text-[clamp(2.5rem,11vw,4rem)] sm:text-5xl md:text-6xl"
                     }`}
                   >
                     {c.title}
@@ -261,31 +261,6 @@ function Index() {
 
           {/* screen dive fade */}
           <div className="pointer-events-none absolute inset-0 bg-background" style={{ opacity: dive }} />
-        </div>
-        <div className="relative z-10 -mt-[100svh] md:hidden">
-          {CHAPTERS.map((chapter, index) => (
-            <section
-              key={chapter.title}
-              className={`flex min-h-[100svh] flex-col justify-end px-5 pb-[max(4rem,env(safe-area-inset-bottom))] pt-24 ${index === 0 ? "" : "border-t border-white/5"}`}
-            >
-              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background/90 p-5 shadow-2xl min-[400px]:p-6">
-                {chapter.kicker && (
-                  <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-primary">
-                    {chapter.kicker}
-                  </div>
-                )}
-                <h2 className={`font-display leading-[0.98] ${index === 0 ? "text-[clamp(2.75rem,14vw,5.5rem)] italic" : "text-[clamp(2.5rem,11vw,4rem)]"}`}>
-                  {chapter.title}
-                </h2>
-                <p className="mt-4 text-sm leading-relaxed text-foreground/75 min-[400px]:text-base">{chapter.body}</p>
-                {index === 0 && (
-                  <div className="mt-6 flex items-center gap-3 font-mono text-[11px] text-muted-foreground">
-                    <span className="block h-7 w-px animate-pulse bg-primary" /> Scroll to take a seat
-                  </div>
-                )}
-              </div>
-            </section>
-          ))}
         </div>
       </div>
 
