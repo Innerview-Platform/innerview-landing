@@ -63,12 +63,17 @@ function Index() {
   const [p, setP] = useState(0);
   const [sceneReady, setSceneReady] = useState(false);
   const [sceneUnavailable, setSceneUnavailable] = useState(false);
+  const [compact, setCompact] = useState<boolean | null>(null);
   const [sceneProgress, setSceneProgress] = useState(0);
   const [sceneLoadElapsed, setSceneLoadElapsed] = useState(0);
   const [loadDemo, setLoadDemo] = useState(false);
   const sceneGateActive = !sceneReady && !sceneUnavailable;
 
   useEffect(() => {
+    const media = window.matchMedia("(max-width: 767px)");
+    const updateCompact = () => setCompact(media.matches);
+    updateCompact();
+    media.addEventListener("change", updateCompact);
     try {
       const canvas = document.createElement("canvas");
       if (!canvas.getContext("webgl2") && !canvas.getContext("webgl")) {
@@ -77,6 +82,7 @@ function Index() {
     } catch {
       setSceneUnavailable(true);
     }
+    return () => media.removeEventListener("change", updateCompact);
   }, []);
 
   useEffect(() => {
@@ -192,10 +198,10 @@ function Index() {
       {/* Scrollytelling story */}
       <div ref={story} className="relative z-10 md:h-[900vh]">
         <div className="sticky top-0 h-[100svh] w-full overflow-hidden md:h-screen">
-          {!sceneUnavailable && (
+          {!sceneUnavailable && compact !== null && (
             <SceneErrorBoundary onError={() => setSceneUnavailable(true)}>
               <Suspense fallback={null}>
-                <RoomScene onReady={setSceneReady} onProgress={setSceneProgress} />
+                <RoomScene compact={compact} onReady={setSceneReady} onProgress={setSceneProgress} />
               </Suspense>
             </SceneErrorBoundary>
           )}
@@ -262,7 +268,7 @@ function Index() {
               key={chapter.title}
               className={`flex min-h-[100svh] flex-col justify-end px-5 pb-[max(4rem,env(safe-area-inset-bottom))] pt-24 ${index === 0 ? "" : "border-t border-white/5"}`}
             >
-              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background/80 p-5 shadow-2xl backdrop-blur-xl min-[400px]:p-6">
+              <div className="w-full max-w-md rounded-2xl border border-white/10 bg-background/90 p-5 shadow-2xl min-[400px]:p-6">
                 {chapter.kicker && (
                   <div className="mb-3 font-mono text-[11px] uppercase tracking-[0.2em] text-primary">
                     {chapter.kicker}

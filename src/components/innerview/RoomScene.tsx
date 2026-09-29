@@ -9,6 +9,8 @@ import { scrollState, smooth } from "./scroll-state";
 // Copied from /assets into /public so the dev server and build can serve them.
 const INTERVIEWER_URL = "/interviewer.glb";
 const INTERVIEWEE_URL = "/interviewee.glb";
+const MOBILE_INTERVIEWER_URL = "/interviewer-mobile.glb";
+const MOBILE_INTERVIEWEE_URL = "/interviewee-mobile.glb";
 const TABLE_Y = 1.22;
 
 /* ---------- Head-turn material (model is unrigged: bend vertices above the neck) ---------- */
@@ -245,7 +247,7 @@ const CODE_LINES = [
   "    return out",
 ];
 
-function useScreenTexture(remote: string) {
+function useScreenTexture(remote: string, compact: boolean) {
   const { canvas, tex, img } = useMemo(() => {
     const canvas = document.createElement("canvas");
     canvas.width = 640;
@@ -259,7 +261,7 @@ function useScreenTexture(remote: string) {
   const last = useRef(0);
   useFrame(({ clock }) => {
     const t = clock.elapsedTime;
-    if (t - last.current < 0.12) return;
+    if (t - last.current < (compact ? 0.5 : 0.12)) return;
     last.current = t;
     const g = canvas.getContext("2d")!;
     g.fillStyle = "#0f0e0d";
@@ -396,8 +398,8 @@ function Keyboard() {
   );
 }
 
-function Laptop({ z, flip, remote }: { z: number; flip: boolean; remote: string }) {
-  const tex = useScreenTexture(remote);
+function Laptop({ z, flip, remote, compact }: { z: number; flip: boolean; remote: string; compact: boolean }) {
+  const tex = useScreenTexture(remote, compact);
   return (
     <group position={[0, TABLE_Y, z]} rotation-y={flip ? Math.PI : 0}>
       {/* base; user sits toward local +z */}
@@ -415,13 +417,15 @@ function Laptop({ z, flip, remote }: { z: number; flip: boolean; remote: string 
           <planeGeometry args={[0.34, 0.2125]} />
           <meshBasicMaterial map={tex} toneMapped={false} />
         </mesh>
-        <pointLight
-          position={[0, 0.12, 0.25]}
-          color="#8fb6ff"
-          intensity={1.4}
-          distance={1.4}
-          decay={2}
-        />
+        {!compact && (
+          <pointLight
+            position={[0, 0.12, 0.25]}
+            color="#8fb6ff"
+            intensity={1.4}
+            distance={1.4}
+            decay={2}
+          />
+        )}
       </group>
     </group>
   );
@@ -534,14 +538,14 @@ function Room() {
   );
 }
 
-function World() {
+function World({ compact }: { compact: boolean }) {
   return (
     <>
       <Room />
       <Table />
       <Lamp />
       <Person
-        url={INTERVIEWER_URL}
+        url={compact ? MOBILE_INTERVIEWER_URL : INTERVIEWER_URL}
         position={[0, 0, -1.12]}
         rotationY={0}
         tint="#ffffff"
@@ -549,15 +553,15 @@ function World() {
         chairX={0.06}
       />
       <Person
-        url={INTERVIEWEE_URL}
+        url={compact ? MOBILE_INTERVIEWEE_URL : INTERVIEWEE_URL}
         position={[0, 0, 1.12]}
         rotationY={Math.PI}
         tint={null}
         phase={2.3}
         chairX={0.12}
       />
-      <Laptop z={-0.36} flip remote={camCandidate} />
-      <Laptop z={0.36} flip={false} remote={camInterviewer} />
+      <Laptop z={-0.36} flip remote={camCandidate} compact={compact} />
+      <Laptop z={0.36} flip={false} remote={camInterviewer} compact={compact} />
     </>
   );
 }
@@ -574,34 +578,42 @@ function SceneLoadProgress({ onProgress }: { onProgress: (progress: number) => v
 }
 
 export default function RoomScene({
+  compact,
   onReady,
   onProgress,
 }: {
+  compact: boolean;
   onReady: (ready: boolean) => void;
   onProgress: (progress: number) => void;
 }) {
-  const [quality, setQuality] = useState({ dpr: 1.25, shadowMapSize: 512 });
+  const root = useRef<HTMLDivElement>(null);
+  const [visible, setVisible] = useState(true);
+  const [pixelRatio, setPixelRatio] = useState(1);
 
   useEffect(() => {
-    const updateQuality = () => {
-      const compact = window.innerWidth < 768;
-      setQuality({
-        dpr: Math.min(window.devicePixelRatio || 1, compact ? 1.25 : 1.75),
-        shadowMapSize: compact ? 512 : 1024,
-      });
-    };
-    updateQuality();
-    window.addEventListener("resize", updateQuality);
-    return () => window.removeEventListener("resize", updateQuality);
+    const updatePixelRatio = () => setPixelRatio(window.devicePixelRatio || 1);
+    updatePixelRatio();
+    window.addEventListener("resize", updatePixelRatio);
+    return () => window.removeEventListener("resize", updatePixelRatio);
+  }, []);
+
+  useEffect(() => {
+    const element = root.current;
+    if (!element) return;
+    const observer = new IntersectionObserver(([entry]) => setVisible(Boolean(entry?.isIntersecting)));
+    observer.observe(element);
+    return () => observer.disconnect();
   }, []);
 
   // NOTE: we intentionally don't clear the GLTF cache on unmount — the scene
   // remounts during development / re-navigation, and refetching two ~9 MB
   // models each time stalls the intro.
   return (
+    <div ref={root} className="absolute inset-0">
     <Canvas
-      shadows
-      dpr={quality.dpr}
+      shadows={!compact}
+      frameloop={visible ? "always" : "demand"}
+      dpr={Math.min(pixelRatio, compact ? 1 : 1.75)}
       camera={{ position: [3.4, 2.1, 0.2], fov: 38, near: 0.02, far: 60 }}
       gl={{ antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.05 }}
     >
@@ -616,13 +628,13 @@ export default function RoomScene({
         distance={6}
         decay={1.6}
         color="#ffbb70"
-        castShadow
-        shadow-mapSize-width={quality.shadowMapSize}
-        shadow-mapSize-height={quality.shadowMapSize}
+        castShadow={!compact}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-bias={-0.0004}
       />
       <directionalLight position={[-4, 3, -3]} intensity={0.25} color="#6f8fbf" />
-      <Environment resolution={64}>
+      {!compact && <Environment resolution={64}>
         <Lightformer
           intensity={0.5}
           position={[0, 4, 0]}
@@ -637,13 +649,14 @@ export default function RoomScene({
           scale={[10, 2, 1]}
           color="#5f7fb0"
         />
-      </Environment>
+      </Environment>}
       <SceneLoadProgress onProgress={onProgress} />
       <Suspense fallback={null}>
-        <World />
+        <World compact={compact} />
         <SceneReady onReady={onReady} />
       </Suspense>
       <CameraRig />
     </Canvas>
+    </div>
   );
 }

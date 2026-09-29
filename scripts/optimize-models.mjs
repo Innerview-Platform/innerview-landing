@@ -2,8 +2,10 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { MeshoptDecoder, MeshoptEncoder, MeshoptSimplifier } from "meshoptimizer";
 
 const models = ["interviewer", "interviewee"];
-const targetIndices = 750_000;
-const maxError = 0.005;
+const mobile = process.argv.includes("--mobile");
+const targetIndices = mobile ? 300_000 : 750_000;
+const maxError = mobile ? 0.012 : 0.005;
+const suffix = mobile ? "-mobile" : "";
 
 await Promise.all([MeshoptDecoder.ready, MeshoptEncoder.ready, MeshoptSimplifier.ready]);
 
@@ -155,7 +157,7 @@ for (const model of models) {
   binHeader.write("BIN\0", 4);
 
   const output = Buffer.concat([header, jsonHeader, jsonChunk, binHeader, binChunk]);
-  writeFileSync(new URL(`../public/${model}.glb`, import.meta.url), output);
+  writeFileSync(new URL(`../public/${model}${suffix}.glb`, import.meta.url), output);
   console.log(
     `${model}: ${(input.length / 1_000_000).toFixed(2)} MB → ${(output.length / 1_000_000).toFixed(2)} MB; ` +
       `${(originalIndices.length / 3).toLocaleString()} → ${(indices.length / 3).toLocaleString()} triangles; ` +
